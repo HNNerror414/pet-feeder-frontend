@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pet Feeder Timetable</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-image: url('https://www.example.com/your-background-image.jpg'); /* Replace with your image URL */
+      background-size: cover;
+      background-position: center;
+    }
+    .container {
+      background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 40px;
+      width: 100%;
+      max-width: 600px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      font-size: 2rem;
+      margin-bottom: 20px;
+    }
+    label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #333;
+    }
+    input, select, button {
+      padding: 12px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+    input:focus, button:focus {
+      outline: none;
+      border-color: #28a745;
+    }
+    input[type="date"], input[type="number"], select {
+      font-size: 1rem;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    #status {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-top: 20px;
+      text-align: center;
+      padding: 10px;
+    }
+    .success {
+      background-color: #28a745;
+      color: white;
+    }
+    .error {
+      background-color: #dc3545;
+      color: white;
+    }
+    .slot {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .slot input {
+      width: 80%;
+    }
+    .slot button {
+      width: 18%;
+      background-color: #dc3545;
+      border: none;
+      cursor: pointer;
+    }
+    .slot button:hover {
+      background-color: #c82333;
+    }
+    .confirmation {
+      font-size: 1rem;
+      padding: 10px;
+      margin: 20px;
+      background-color: #e9ecef;
+      border-radius: 8px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pet Feeder Timetable</h1>
+    <form id="timetableForm">
+      <label for="date">Feeding Date (YYYY-MM-DD)</label>
+      <input type="date" id="date" name="date" required>
+
+      <label for="intervals">Number of Feeding Intervals</label>
+      <input type="number" id="intervals" name="intervals" min="1" required>
+
+      <label for="repeat">Repeat Timetable</label>
+      <select id="repeat" name="repeat" required>
+        <option value="none">None</option>
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+
+      <div id="additionalSlots"></div>
+
+      <button type="submit">Save Timetable</button>
+    </form>
+    <div id="status"></div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmationModal" class="confirmation" style="display:none;">
+    <h2>Timetable Summary</h2>
+    <p id="confirmationText"></p>
+    <button id="confirmBtn">Confirm</button>
+    <button id="cancelBtn">Cancel</button>
+  </div>
+
+  <script>
+    const form = document.getElementById('timetableForm');
+    const additionalSlotsDiv = document.getElementById('additionalSlots');
+    const confirmationModal = document.getElementById('confirmationModal');
+    const confirmationText = document.getElementById('confirmationText');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    // Event listener for number of intervals
+    document.getElementById('intervals').addEventListener('input', (e) => {
+      const numIntervals = e.target.value;
+      updateAdditionalSlots(numIntervals);
+    });
+
+    // Update additional time slots based on number of intervals
+    function updateAdditionalSlots(numIntervals) {
+      additionalSlotsDiv.innerHTML = '';
+      for (let i = 1; i <= numIntervals; i++) {
+        const slotDiv = document.createElement('div');
+        slotDiv.classList.add('slot');
+        slotDiv.innerHTML = `
+          <label for="time${i}">Feeding Time ${i} (HH:MM)</label>
+          <input type="time" id="time${i}" name="time${i}" required>
+          <button type="button" onclick="removeSlot(this)">Remove</button>
+        `;
+        additionalSlotsDiv.appendChild(slotDiv);
+      }
+    }
+
+    // Remove additional time slot
+    function removeSlot(button) {
+      button.parentElement.remove();
+    }
+
+    // Handle form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // Collect data from the form
+      const date = document.getElementById('date').value;
+      const intervals = document.getElementById('intervals').value;
+      const repeat = document.getElementById('repeat').value;
+      let feedingTimes = [];
+      for (let i = 1; i <= intervals; i++) {
+        feedingTimes.push(document.getElementById(`time${i}`).value);
+      }
+
+      // Basic validation
+      if (!date || feedingTimes.some(t => t === '')) {
+        showFeedback('error', 'Please fill in all fields.');
+        return;
+      }
+
+      // Show confirmation popup
+      confirmationText.innerHTML = `
+        <strong>Date:</strong> ${date}<br>
+        <strong>Intervals:</strong> ${intervals}<br>
+        <strong>Repeat:</strong> ${repeat}<br>
+        <strong>Feeding Times:</strong><br> ${feedingTimes.join('<br>')}
+      `;
+      confirmationModal.style.display = 'block';
+    });
+
+    // Confirm and submit the timetable
+    confirmBtn.addEventListener('click', async () => {
+      const date = document.getElementById('date').value;
+      const intervals = document.getElementById('intervals').value;
+      const repeat = document.getElementById('repeat').value;
+      let feedingTimes = [];
+      for (let i = 1; i <= intervals; i++) {
+        feedingTimes.push(document.getElementById(`time${i}`).value);
+      }
+
+      const response = await fetch('/api/timetable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, intervals, repeat, feedingTimes }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        showFeedback('success', 'Timetable saved successfully!');
+      } else {
+        showFeedback('error', 'Failed to save timetable. Please try again.');
+      }
+      confirmationModal.style.display = 'none';
+    });
+
+    // Cancel the confirmation
+    cancelBtn.addEventListener('click', () => {
+      confirmationModal.style.display = 'none';
+    });
+
+    // Show feedback message
+    function showFeedback(type, message) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.className = type;
+      statusDiv.innerText = message;
+    }
+  </script>
+</body>
+</html>
+
